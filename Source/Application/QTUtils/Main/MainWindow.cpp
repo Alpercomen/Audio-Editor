@@ -1,99 +1,60 @@
 #pragma once
-#include <QDockWidget>
-#include <QToolBar>
-#include <QAction>
-#include <QStyle>
-#include <QTreeView>
-#include <QStatusBar>
-#include <QModelIndex>
-#include <QDir>
-#include <QCoreApplication>
-
 #include <Application/QTUtils/Main/MainWindow.h>
-#include <Application/QTUtils/Model/Hierarchy.h>
-#include <Application/QTUtils/Panel/Inspector.h>
-#include <Application/QTUtils/View/ContentBrowser.h>
-#include <Application/QTUtils/View/Scene.h>
+#include <Application/QTUtils/Widgets/Editor/EditorWidget.h>
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-	setWindowTitle("Editor");
-	resize(1400, 900);
+#include <QMenuBar>
+#include <QToolBar>
+#include <QStatusBar>
+#include <QAction>
 
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
+{
+	mEditor = new EditorWidget(this);
+	setCentralWidget(mEditor);
 
-	// Central scene view
-	sceneView = new SceneView(this);
-	setCentralWidget(sceneView);
-
-
-	buildMenusAndToolbars();
-	buildDocks();
-
-
-	// Point Content Browser at project source tree (locked)
-#ifdef PROJECT_SOURCE_DIR
-	contentBrowser->setRootPath(QString::fromUtf8(PROJECT_SOURCE_DIR));
-#else
-// Fallback: try repo root two levels up from exe (Build/<cfg>/Editor.exe)
-	contentBrowser->setRootPath(QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../.."));
-#endif
-
+	buildMenus();
+	buildToolbar();
 
 	statusBar()->showMessage("Ready");
+	setWindowTitle("Audio Editor");
 }
 
-void MainWindow::buildMenusAndToolbars() {
-	auto* tb = addToolBar("Playback");
+void MainWindow::buildMenus()
+{
+	auto* fileMenu = menuBar()->addMenu("&File");
 
-	// Create expanding spacers
-	QWidget* leftSpacer = new QWidget(tb);
-	QWidget* rightSpacer = new QWidget(tb);
-	leftSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-	rightSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+	auto* openAct = new QAction("Open...", this);
+	openAct->setShortcut(QKeySequence::Open);
+	fileMenu->addAction(openAct);
 
-	tb->addWidget(leftSpacer);
+	fileMenu->addSeparator();
 
-	actPlay = tb->addAction(style()->standardIcon(QStyle::SP_MediaPlay), "Play");
-	actStop = tb->addAction(style()->standardIcon(QStyle::SP_MediaStop), "Stop");
-	actFF = tb->addAction(style()->standardIcon(QStyle::SP_MediaSkipForward), "Fast-Forward");
+	auto* quitAct = new QAction("Quit", this);
+	quitAct->setShortcut(QKeySequence::Quit);
+	fileMenu->addAction(quitAct);
 
-	tb->addWidget(rightSpacer);
-
-	tb->setMovable(false);
+	// TODO Fix this
+	connect(quitAct, &QAction::triggered, this, &QWidget::close);
+	connect(openAct, &QAction::triggered, this, [this] {
+		statusBar()->showMessage("Open clicked (not implemented yet)", 2000);
+		});
 }
 
-void MainWindow::buildDocks() {
-	// Hierarchy Dock (Left)
-	auto* hierarchyDock = new QDockWidget("Hierarchy", this);
-	hierarchyDock->setObjectName("HierarchyDock");
-	hierarchyModel = new HierarchyModel(this);
-	auto* hierarchyView = new QTreeView(hierarchyDock);
-	hierarchyView->setModel(hierarchyModel);
-	hierarchyView->setHeaderHidden(false);
-	hierarchyView->expandAll();
-	hierarchyDock->setWidget(hierarchyView);
-	addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
+void MainWindow::buildToolbar()
+{
+	auto* toolBar = addToolBar("Transport");
+	toolBar->setMovable(false);
 
+	auto* playAct = toolBar->addAction("Play");
+	auto* stopAct = toolBar->addAction("Stop");
 
-	// Inspector Dock (Right)
-	auto* inspectorDock = new QDockWidget("Inspector", this);
-	inspectorDock->setObjectName("InspectorDock");
-	inspectorPanel = new InspectorPanel(inspectorDock);
-	inspectorDock->setWidget(inspectorPanel);
-	addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
+	// TODO Fix this
+	connect(playAct, &QAction::triggered, this, [this] {
+		statusBar()->showMessage("Play (not implemented)", 1500);
+		});
 
-
-	// Content Browser Dock (Bottom)
-	auto* contentDock = new QDockWidget("Content Browser", this);
-	contentDock->setObjectName("ContentDock");
-	contentBrowser = new ContentBrowser(contentDock);
-	contentDock->setWidget(contentBrowser);
-	addDockWidget(Qt::BottomDockWidgetArea, contentDock);
-
-
-	// Selection handling: update Inspector when Hierarchy selection changes
-	connect(hierarchyView->selectionModel(), &QItemSelectionModel::currentChanged,
-		this, [this](const QModelIndex& curr, const QModelIndex&) {
-			const QString name = hierarchyModel->data(curr, Qt::DisplayRole).toString();
-			inspectorPanel->showEntity(name);
+	// TODO Fix this
+	connect(stopAct, &QAction::triggered, this, [this] {
+		statusBar()->showMessage("Stop (not implemented)", 1500);
 		});
 }

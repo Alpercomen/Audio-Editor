@@ -4,7 +4,7 @@
     {
       "name": "Qt-Debug",
       "inherits": "Qt-Default",
-      "binaryDir": "${sourceDir}/out/build/debug",
+      "binaryDir": "${sourceDir}/Qt",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_CXX_FLAGS": "-DQT_QML_DEBUG"
@@ -16,7 +16,7 @@
     {
       "name": "Qt-Release",
       "inherits": "Qt-Default",
-      "binaryDir": "${sourceDir}/out/build/release",
+      "binaryDir": "${sourceDir}/Qt",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -52,7 +52,7 @@
   ],
   "vendor": {
     "qt-project.org/Presets": {
-      "checksum": "jfNaehdZ6gKrKhuY4ZKhPYJuhsw="
+      "checksum": "gs7ziMkksm/xOaCdmbWY+QE80RY="
     }
   }
 }

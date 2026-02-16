@@ -14,6 +14,15 @@ namespace Audio
 	public:
 		IODevice(QObject* parent = nullptr) : QIODevice(parent) {}
 
+		static inline qint16 floatToI16(float x)
+		{
+			// clamp [-1, 1]
+			if (x > 1.0f) x = 1.0f;
+			if (x < -1.0f) x = -1.0f;
+			// map to int16
+			return (qint16)std::lrintf(x * 32767.0f);
+		}
+
 		void setBuffer(const float* data, std::int64_t frames, int channels)
 		{
 			pData = data;
@@ -24,64 +33,62 @@ namespace Audio
 
 		void seekToFrame(std::int64_t frame)
 		{
-			frame = std::max<std::int64_t>(0, std::min(frame, mFrames));
+			frame = std::clamp<std::int64_t>(frame, 0, std::max<std::int64_t>(0, mFrames - 1));
 			mFramePos = frame;
 		}
 
 		qint64 bytesAvailable() const override
 		{
-			if (!pData || mFrames <= 0 || mChannels <= 0) return QIODevice::bytesAvailable();
+			if (!pData || mFrames <= 0 || mChannels <= 0) 
+				return QIODevice::bytesAvailable();
+
 			const std::int64_t framesRemaining = mFrames - mFramePos;
-			const qint64 bytesRemaining = (qint64)framesRemaining * (qint64)mChannels * (qint64)sizeof(float);
+			const qint64 bytesRemaining = (qint64)framesRemaining * (qint64)mChannels * (qint64)sizeof(qint16);
 			return bytesRemaining + QIODevice::bytesAvailable();
 		}
 
 		bool atEnd() const override
 		{
-			if (!pData || mFrames <= 0 || mChannels <= 0) return true;
-			return mFramePos >= mFrames;
+			if (!pData || mFrames <= 0 || mChannels <= 0) 
+				return true;
+
+			if (mFramePos >= mFrames)
+				return true;
+			else
+				return false;
 		}
 
 		std::int64_t getCurrentFrame() const { return mFramePos; }
 		std::int64_t getTotalFrames() const { return mFrames; }
 
-		bool isSequential() const override { return true; }
-		void close() override { QIODevice::close(); }
+		bool isSequential() const override { return false; }
 
 	protected:
 		qint64 readData(char* out, qint64 maxBytes) override
 		{
-			static int dbg = 0;
-			if (dbg < 10) {
-				dbg++;
-				spdlog::info("readData maxBytes={} frames={} ch={} pos={} data={}",
-					(long long)maxBytes,
-					(long long)mFrames,
-					mChannels,
-					(long long)mFramePos,
-					(void*)pData);
-			}
 
-			if (!pData || mFrames <= 0 || mChannels <= 0)
-				return 0;
+			if (!pData || mFrames <= 0 || mChannels <= 0) return 0;
 
 			const std::int64_t framesRemaining = mFrames - mFramePos;
+			if (framesRemaining <= 0) return 0;
 
-			if (framesRemaining <= 0)
-				return 0;
+			// We're outputting int16 samples:
+			const qint64 bytesPerFrame = (qint64)mChannels * (qint64)sizeof(qint16);
 
-			const qint64 bytesPerFrame = (qint64)mChannels * (qint64)sizeof(float);
-			const qint64 framesToWrite = std::min<std::int64_t>(framesRemaining, (std::int64_t)(maxBytes / bytesPerFrame));
-			const qint64 bytesToWrite = framesToWrite * bytesPerFrame;
+			// Only write whole frames
+			const std::int64_t framesToWrite =
+				std::min<std::int64_t>(framesRemaining, (std::int64_t)(maxBytes / bytesPerFrame));
 
+			const qint64 bytesToWrite = (qint64)framesToWrite * bytesPerFrame;
+
+			auto* dst = reinterpret_cast<qint16*>(out);
 			const float* src = pData + (size_t)(mFramePos * mChannels);
-			std::memcpy(out, src, (size_t)bytesToWrite);
 
-			mFramePos += (std::int64_t)framesToWrite;
+			const std::int64_t samplesToWrite = framesToWrite * (std::int64_t)mChannels;
+			for (std::int64_t i = 0; i < samplesToWrite; ++i)
+				dst[i] = floatToI16(src[i]);
 
-			if (dbg < 10) 
-				spdlog::info("readData returning {} bytes", (long long)bytesToWrite);
-
+			mFramePos += framesToWrite;
 			return bytesToWrite;
 		}
 

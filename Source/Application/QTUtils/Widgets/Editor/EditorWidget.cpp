@@ -30,8 +30,6 @@ namespace UI
 		pHint = new QLabel(this);
 		pHint->setText("No audio loaded. Use File -> Open or drag & drop an audio file here.");
 		pHint->setAlignment(Qt::AlignCenter);
-
-		root->addWidget(pWaveView, 1);
 		root->addWidget(pHint, 0);
 	}
 

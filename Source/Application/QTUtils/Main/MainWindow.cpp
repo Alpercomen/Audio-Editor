@@ -82,14 +82,12 @@ namespace UI
 		auto* playAct = toolBar->addAction("Play");
 		auto* stopAct = toolBar->addAction("Stop");
 
-		// TODO Fix this
 		connect(playAct, &QAction::triggered, this, [this] {
 			if (pEditor)
 				pEditor->play();
 			statusBar()->showMessage("Play", 1500);
 			});
 
-		// TODO Fix this
 		connect(stopAct, &QAction::triggered, this, [this] {
 			if (pEditor)
 				pEditor->stop();

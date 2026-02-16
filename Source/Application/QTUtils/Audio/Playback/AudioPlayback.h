@@ -28,10 +28,15 @@ namespace Audio
 		void playbackStopped();
 
 	private:
-		std::shared_ptr<Audio::AudioDocument> pDoc;
-		std::shared_ptr<QAudioSink> pSink;
+		std::unique_ptr<Audio::AudioDocument> pDoc;
+		std::unique_ptr<QAudioSink> pSink;
 
 		IODevice mDevice;
 		QAudioFormat mFormat;
+
+		bool mPendingStart = false;
+		std::int64_t mPendingStartFrame = 0;
+
+		void startAtFrameNow(std::int64_t frame);
 	};
 }

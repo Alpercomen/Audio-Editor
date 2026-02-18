@@ -1,99 +1,97 @@
 #pragma once
-#include <QDockWidget>
+#include "MainWindow.h"
+
+#include <Application/QTUtils/Widgets/Editor/EditorWidget.h>
+#include <Application/QTUtils/Widgets/Waveform/WaveformView.h>
+#include <Application/Audio/Document/AudioDocument.h>
+
+#include <QMenuBar>
 #include <QToolBar>
-#include <QAction>
-#include <QStyle>
-#include <QTreeView>
 #include <QStatusBar>
-#include <QModelIndex>
-#include <QDir>
-#include <QCoreApplication>
+#include <QAction>
+#include <QFileDialog>
+#include <QString>
+#include <QMessageBox>
 
-#include <Application/QTUtils/Main/MainWindow.h>
-#include <Application/QTUtils/Model/Hierarchy.h>
-#include <Application/QTUtils/Panel/Inspector.h>
-#include <Application/QTUtils/View/ContentBrowser.h>
-#include <Application/QTUtils/View/Scene.h>
+namespace UI
+{
+	MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent)
+	{
+		pEditor = new EditorWidget(this);
+		setCentralWidget(pEditor);
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-	setWindowTitle("Editor");
-	resize(1400, 900);
+		buildMenus();
+		buildToolbar();
 
+		statusBar()->showMessage("Ready");
+		setWindowTitle("Audio Editor");
+	}
 
-	// Central scene view
-	sceneView = new SceneView(this);
-	setCentralWidget(sceneView);
+	void MainWindow::buildMenus()
+	{
+		auto* fileMenu = menuBar()->addMenu("&File");
 
+		auto* openAct = new QAction("Open...", this);
+		openAct->setShortcut(QKeySequence::Open);
+		fileMenu->addAction(openAct);
 
-	buildMenusAndToolbars();
-	buildDocks();
+		fileMenu->addSeparator();
 
+		auto* quitAct = new QAction("Quit", this);
+		quitAct->setShortcut(QKeySequence::Quit);
+		fileMenu->addAction(quitAct);
 
-	// Point Content Browser at project source tree (locked)
-#ifdef PROJECT_SOURCE_DIR
-	contentBrowser->setRootPath(QString::fromUtf8(PROJECT_SOURCE_DIR));
-#else
-// Fallback: try repo root two levels up from exe (Build/<cfg>/Editor.exe)
-	contentBrowser->setRootPath(QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../.."));
-#endif
+		connect(quitAct, &QAction::triggered, this, &QWidget::close);
+		connect(openAct, &QAction::triggered, this, [this] {
+			const QString file = QFileDialog::getOpenFileName(
+				this,
+				"Open Audio",
+				QString(),
+				"Audio Files (*.wav *.miff *.flac *.ogg);;All Files (*,*)"
+			);
 
+			if (file.isEmpty())
+				return;
 
-	statusBar()->showMessage("Ready");
-}
+			std::string err;
+			Audio::AudioDocument doc = Audio::AudioDocument::LoadFromFile(file.toStdString(), err);
 
-void MainWindow::buildMenusAndToolbars() {
-	auto* tb = addToolBar("Playback");
+			if (!doc.isValid())
+			{
+				QMessageBox::critical(this, "Failed to load", QString::fromStdString(err));
+				return;
+			}
 
-	// Create expanding spacers
-	QWidget* leftSpacer = new QWidget(tb);
-	QWidget* rightSpacer = new QWidget(tb);
-	leftSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-	rightSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+			pEditor->setDocument(std::move(doc), file);
+			statusBar()->showMessage(
+				QString("Loaded: %1 | %2 Hz | %3 ch | %4 sec")
+				.arg(file)
+				.arg(doc.sampleRate)
+				.arg(doc.channels)
+				.arg(doc.durationSeconds(), 0, 'f', 2),
+				5000
+			);
+			});
+	}
 
-	tb->addWidget(leftSpacer);
+	void MainWindow::buildToolbar()
+	{
+		auto* toolBar = addToolBar("Transport");
+		toolBar->setMovable(false);
 
-	actPlay = tb->addAction(style()->standardIcon(QStyle::SP_MediaPlay), "Play");
-	actStop = tb->addAction(style()->standardIcon(QStyle::SP_MediaStop), "Stop");
-	actFF = tb->addAction(style()->standardIcon(QStyle::SP_MediaSkipForward), "Fast-Forward");
+		auto* playAct = toolBar->addAction("Play");
+		auto* stopAct = toolBar->addAction("Stop");
 
-	tb->addWidget(rightSpacer);
+		connect(playAct, &QAction::triggered, this, [this] {
+			if (pEditor)
+				pEditor->play();
+			statusBar()->showMessage("Play", 1500);
+			});
 
-	tb->setMovable(false);
-}
-
-void MainWindow::buildDocks() {
-	// Hierarchy Dock (Left)
-	auto* hierarchyDock = new QDockWidget("Hierarchy", this);
-	hierarchyDock->setObjectName("HierarchyDock");
-	hierarchyModel = new HierarchyModel(this);
-	auto* hierarchyView = new QTreeView(hierarchyDock);
-	hierarchyView->setModel(hierarchyModel);
-	hierarchyView->setHeaderHidden(false);
-	hierarchyView->expandAll();
-	hierarchyDock->setWidget(hierarchyView);
-	addDockWidget(Qt::LeftDockWidgetArea, hierarchyDock);
-
-
-	// Inspector Dock (Right)
-	auto* inspectorDock = new QDockWidget("Inspector", this);
-	inspectorDock->setObjectName("InspectorDock");
-	inspectorPanel = new InspectorPanel(inspectorDock);
-	inspectorDock->setWidget(inspectorPanel);
-	addDockWidget(Qt::RightDockWidgetArea, inspectorDock);
-
-
-	// Content Browser Dock (Bottom)
-	auto* contentDock = new QDockWidget("Content Browser", this);
-	contentDock->setObjectName("ContentDock");
-	contentBrowser = new ContentBrowser(contentDock);
-	contentDock->setWidget(contentBrowser);
-	addDockWidget(Qt::BottomDockWidgetArea, contentDock);
-
-
-	// Selection handling: update Inspector when Hierarchy selection changes
-	connect(hierarchyView->selectionModel(), &QItemSelectionModel::currentChanged,
-		this, [this](const QModelIndex& curr, const QModelIndex&) {
-			const QString name = hierarchyModel->data(curr, Qt::DisplayRole).toString();
-			inspectorPanel->showEntity(name);
-		});
+		connect(stopAct, &QAction::triggered, this, [this] {
+			if (pEditor)
+				pEditor->stop();
+			statusBar()->showMessage("Stop", 1500);
+			});
+	}
 }

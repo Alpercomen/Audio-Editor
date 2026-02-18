@@ -49,69 +49,34 @@ namespace Audio
 
         connect(pSink.get(), &QAudioSink::stateChanged, this, [this](QAudio::State st) {
             spdlog::info("QAudioSink stateChanged -> {}", (int)st);
-
-            if (st == QAudio::StoppedState) 
-            {
-                emit playbackStopped();
-
-                if (mPendingStart) 
-                {
-                    const auto frame = mPendingStartFrame;
-                    mPendingStart = false;
-                    startAtFrameNow(frame);
-                }
-            }
             });
 
         mDevice.setBuffer(pDoc->interleaved.data(), pDoc->frames, pDoc->channels);
 
         if (!mDevice.isOpen())
-            mDevice.open(QIODevice::ReadOnly);
+            mDevice.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
 	}
-
-    void AudioPlayback::startAtFrameNow(std::int64_t frame)
-    {
-        if (!pSink || !pDoc || !pDoc->isValid())
-            return;
-
-        frame = std::clamp<std::int64_t>(frame, 0, std::max<std::int64_t>(0, pDoc->frames - 1));
-
-        pSink->reset();
-
-        if (!mDevice.isOpen())
-            mDevice.open(QIODevice::ReadOnly);
-
-        mDevice.seekToFrame(frame);
-        pSink->start(&mDevice);
-    }
 
 	void AudioPlayback::play()
 	{
         if (!pSink || !pDoc || !pDoc->isValid())
             return;
 
+        if (!mDevice.isOpen())
+            mDevice.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+
         const auto st = pSink->state();
-        spdlog::info("State before play: {}", (int)st);
-
-        // If sink is Active OR Idle, it is considered "already started".
-        // Queue restart and reset to reach StoppedState cleanly.
         if (st == QAudio::ActiveState || st == QAudio::IdleState) 
-        {
-            mPendingStart = true;
-            mPendingStartFrame = 0;
             pSink->reset();
-            return;
-        }
 
-        startAtFrameNow(0);
+        mDevice.seekToFrame(0);
+        pSink->start(&mDevice);
 	}
 
 	void AudioPlayback::stop()
 	{
         if (!pSink) 
             return;
-
-        mPendingStart = false;
 
         pSink->reset();
 	}
@@ -127,8 +92,6 @@ namespace Audio
 
         if (st == QAudio::ActiveState || st == QAudio::IdleState) 
         {
-            mPendingStart = true;
-            mPendingStartFrame = frame;
             pSink->reset();
             return;
         }

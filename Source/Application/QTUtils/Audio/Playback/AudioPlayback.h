@@ -24,19 +24,11 @@ namespace Audio
 		bool isPlaying() const { return pSink && pSink->state() == QAudio::ActiveState; }
 		std::int64_t getCurrentFrame() const;
 
-	signals:
-		void playbackStopped();
-
 	private:
 		std::unique_ptr<Audio::AudioDocument> pDoc;
 		std::unique_ptr<QAudioSink> pSink;
 
 		IODevice mDevice;
 		QAudioFormat mFormat;
-
-		bool mPendingStart = false;
-		std::int64_t mPendingStartFrame = 0;
-
-		void startAtFrameNow(std::int64_t frame);
 	};
 }

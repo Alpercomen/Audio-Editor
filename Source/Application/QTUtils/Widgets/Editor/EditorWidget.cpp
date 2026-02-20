@@ -61,7 +61,10 @@ namespace UI
 		mProject->tracks.push_back(Audio::Track{ "Track " + std::to_string(mProject->tracks.size() + 1) });
 		auto& track = mProject->tracks[mProject->tracks.size() - 1];
 
+		static uint64_t gClipId = 1;
+
 		Audio::Clip clip;
+		clip.id = gClipId++;
 		clip.source = src;
 		clip.startFrameOnTimeline = 0;
 		clip.sourceInFrame = 0;

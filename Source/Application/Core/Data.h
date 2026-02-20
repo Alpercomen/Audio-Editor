@@ -8,7 +8,8 @@
 namespace Audio
 {
 
-    struct AudioSource {
+    struct AudioSource
+    {
         int sampleRate = 0;
         int channels = 0;
         std::vector<float> interleaved;
@@ -16,19 +17,23 @@ namespace Audio
         int64_t frames() const { return channels > 0 ? (int64_t)interleaved.size() / channels : 0; }
     };
 
-    struct Clip {
+    struct Clip
+    {
+        uint64_t id = 0;
+
         std::shared_ptr<AudioSource> source;
 
         int64_t startFrameOnTimeline = 0;
 
         int64_t sourceInFrame = 0;
-        int64_t sourceOutFrame = 0; // one-past-end
+        int64_t sourceOutFrame = 0;
 
         float gain = 1.0f;
         bool muted = false;
     };
 
-    struct Track {
+    struct Track
+    {
         std::string name = "Track";
         float gain = 1.0f;
         bool muted = false;

@@ -2,7 +2,6 @@
 #include "MainWindow.h"
 
 #include <Application/QTUtils/Widgets/Editor/EditorWidget.h>
-#include <Application/QTUtils/Widgets/Waveform/WaveformView.h>
 #include <Application/Audio/Document/AudioDocument.h>
 
 #include <QMenuBar>
@@ -12,6 +11,8 @@
 #include <QFileDialog>
 #include <QString>
 #include <QMessageBox>
+#include <QStyle>
+#include <QToolButton>
 
 namespace UI
 {
@@ -42,35 +43,37 @@ namespace UI
 		fileMenu->addAction(quitAct);
 
 		connect(quitAct, &QAction::triggered, this, &QWidget::close);
-		connect(openAct, &QAction::triggered, this, [this] {
-			const QString file = QFileDialog::getOpenFileName(
-				this,
-				"Open Audio",
-				QString(),
-				"Audio Files (*.wav *.miff *.flac *.ogg);;All Files (*,*)"
-			);
-
-			if (file.isEmpty())
-				return;
-
-			std::string err;
-			Audio::AudioDocument doc = Audio::AudioDocument::LoadFromFile(file.toStdString(), err);
-
-			if (!doc.isValid())
+		connect(openAct, &QAction::triggered, this, [this]
 			{
-				QMessageBox::critical(this, "Failed to load", QString::fromStdString(err));
-				return;
-			}
+				const QString file = QFileDialog::getOpenFileName(
+					this,
+					"Open Audio",
+					QString(),
+					"Audio Files (*.wav *.miff *.flac *.ogg);;All Files (*,*)"
+				);
 
-			pEditor->setDocument(std::move(doc), file);
-			statusBar()->showMessage(
-				QString("Loaded: %1 | %2 Hz | %3 ch | %4 sec")
-				.arg(file)
-				.arg(doc.sampleRate)
-				.arg(doc.channels)
-				.arg(doc.durationSeconds(), 0, 'f', 2),
-				5000
-			);
+				if (file.isEmpty())
+					return;
+
+				std::string err;
+				Audio::AudioDocument doc = Audio::AudioDocument::LoadFromFile(file.toStdString(), err);
+
+				if (!doc.isValid())
+				{
+					QMessageBox::critical(this, "Failed to load", QString::fromStdString(err));
+					return;
+				}
+
+				statusBar()->showMessage(
+					QString("Loaded: %1 | %2 Hz | %3 ch | %4 sec")
+					.arg(file)
+					.arg(doc.sampleRate)
+					.arg(doc.channels)
+					.arg(doc.durationSeconds(), 0, 'f', 2),
+					5000
+				);
+
+				pEditor->setDocument(std::move(doc), file);
 			});
 	}
 
@@ -79,19 +82,56 @@ namespace UI
 		auto* toolBar = addToolBar("Transport");
 		toolBar->setMovable(false);
 
-		auto* playAct = toolBar->addAction("Play");
-		auto* stopAct = toolBar->addAction("Stop");
+		const QIcon fromStartIcon = style()->standardIcon(QStyle::SP_MediaSkipBackward);
+		const QIcon playIcon = style()->standardIcon(QStyle::SP_MediaPlay);
+		const QIcon pauseIcon = style()->standardIcon(QStyle::SP_MediaPause);
+		const QIcon stopIcon = style()->standardIcon(QStyle::SP_MediaStop);
 
-		connect(playAct, &QAction::triggered, this, [this] {
-			if (pEditor)
-				pEditor->play();
-			statusBar()->showMessage("Play", 1500);
+		auto* playFromStartAct = toolBar->addAction(fromStartIcon, "Play from start");
+		auto* playPauseAct = toolBar->addAction(playIcon, "Play/Pause");
+		playPauseAct->setCheckable(true);
+		auto* stopAct = toolBar->addAction(stopIcon, "Stop");
+
+		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+		connect(playFromStartAct, &QAction::triggered, this, [this, playPauseAct, pauseIcon](bool)
+			{
+				if (!pEditor)
+					return;
+
+				pEditor->playFromStart();
+
+				playPauseAct->setIcon(pauseIcon);
+				playPauseAct->setChecked(true);
 			});
 
-		connect(stopAct, &QAction::triggered, this, [this] {
-			if (pEditor)
+		connect(playPauseAct, &QAction::triggered, this, [this, playPauseAct, playIcon, pauseIcon](bool)
+			{
+				if (!pEditor)
+					return;
+
+				pEditor->togglePlayPause();
+
+				if (pEditor->isPlaying())
+				{
+					playPauseAct->setIcon(pauseIcon);
+					playPauseAct->setChecked(true);
+				}
+				else
+				{
+					playPauseAct->setIcon(playIcon);
+					playPauseAct->setChecked(false);
+				}
+			});
+
+		connect(stopAct, &QAction::triggered, this, [this, playPauseAct, playIcon]()
+			{
+				if (!pEditor)
+					return;
 				pEditor->stop();
-			statusBar()->showMessage("Stop", 1500);
+
+				playPauseAct->setIcon(playIcon);
+				playPauseAct->setChecked(false);
 			});
 	}
 }

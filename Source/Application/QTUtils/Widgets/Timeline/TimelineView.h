@@ -38,6 +38,8 @@ namespace UI
 		void mouseMoveEvent(QMouseEvent* e) override;
 		void mouseReleaseEvent(QMouseEvent* e) override;
 
+		void wheelEvent(QWheelEvent* e) override;
+
 	private:
 		std::shared_ptr<Audio::Project> mProject;
 		std::int64_t mPlayheadFrame = 0;
@@ -57,4 +59,5 @@ namespace UI
 	};
 
 	void drawWaveform(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& r, int outChannels);
+	void drawWaveformVisibleSlice(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, std::int64_t viewStartFrame, std::int64_t viewEndFrame, double framesPerPixel);
 }

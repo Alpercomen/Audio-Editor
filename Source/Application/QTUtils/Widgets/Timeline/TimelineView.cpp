@@ -1,10 +1,13 @@
 #include <Application/QTUtils/Widgets/Timeline/TimelineView.h>
 #include <Application/QTUtils/Helper/Color.h>
 
-#include <QPainter>
-#include <QMouseEvent>
 #include <algorithm>
 #include <cmath>
+
+#include <QPainter>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QGuiApplication>
 
 namespace UI
 {
@@ -82,7 +85,7 @@ namespace UI
 				p.setPen(base.darker(160));
 				p.drawRect(r);
 
-				drawWaveform(p, *clip.source, clip, r, mProject->channels);
+				drawWaveformVisibleSlice(p, *clip.source, clip, r, start, end, framesPerPixel);
 
 				p.setPen(QColor(220, 220, 220));
 				p.drawText(r.adjusted(6, 0, -6, 0), Qt::AlignVCenter | Qt::AlignLeft,
@@ -111,7 +114,6 @@ namespace UI
 
 		if (e->button() == Qt::LeftButton)
 		{
-			// Test if we are hovering over a clip, if so, grab it
 			mActiveClip = hitTestClip(e->pos());
 			if (mActiveClip)
 			{
@@ -127,7 +129,6 @@ namespace UI
 				return;
 			}
 
-			// Otherwise, click-to-seek
 			const auto frame = xToFrame(e->pos().x());
 			mPlayheadFrame = std::max<std::int64_t>(0, frame);
 			update();
@@ -171,6 +172,70 @@ namespace UI
 			return;
 		}
 		QWidget::mouseReleaseEvent(e);
+	}
+
+	void TimelineView::wheelEvent(QWheelEvent* e)
+	{
+		if (!mProject)
+		{
+			e->ignore();
+			return;
+		}
+
+		const bool shiftIsPressed = (e->modifiers() & Qt::ShiftModifier);
+
+		QPointF pixelDelta = e->pixelDelta();
+		QPoint angleDelta = e->angleDelta();
+
+		double steps = 0.0;
+		if (!pixelDelta.isNull())
+		{
+			steps = pixelDelta.y() / 120.0;
+
+			if (std::abs(steps) < 1e-6)
+				steps = pixelDelta.x() / 120.0;
+		}
+		else
+		{
+			steps = angleDelta.y() / 120.0;
+			if (std::abs(steps) < 1e-6) steps = angleDelta.x() / 120.0;
+		}
+
+		if (std::abs(steps) < 1e-6) { e->accept(); return; }
+
+		const double oldZoom = mZoom;
+		const double oldFpp = getFramesPerPixel();
+		const int mouseX = (int)std::round(e->position().x());
+
+		if (shiftIsPressed)
+		{
+			const double panPixelsPerStep = 200.0;
+			const double panPixels = -steps * panPixelsPerStep;
+			const std::int64_t panFrames = (std::int64_t)std::llround(panPixels * oldFpp);
+
+			mStartFrame = std::max<std::int64_t>(0, mStartFrame + panFrames);
+
+			update();
+			e->accept();
+			return;
+		}
+		else
+		{
+			const std::int64_t anchorFrame = xToFrame(mouseX);
+
+			const double factorPerStep = 1.12;
+			const double factor = std::pow(factorPerStep, steps);
+
+			mZoom = std::clamp(mZoom * factor, 0.1, 500.0);
+			const double newFpp = getFramesPerPixel();
+
+			std::int64_t newStart = (std::int64_t)std::llround((double)anchorFrame - (double)mouseX * newFpp);
+			mStartFrame = std::max<std::int64_t>(0, newStart);
+
+			update();
+			e->accept();
+			return;
+		}
 	}
 
 	std::int64_t TimelineView::xToFrame(int x) const
@@ -263,6 +328,75 @@ namespace UI
 			const int y2 = midY - (int)std::round(mn * halfH);
 
 			const int px = r.left() + x;
+			p.drawLine(px, y1, px, y2);
+		}
+	}
+
+	static void drawWaveformVisibleSlice(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, std::int64_t viewStartFrame, std::int64_t viewEndFrame, double framesPerPixel)
+	{
+		if (clipRect.width() <= 2 || clipRect.height() <= 4)
+			return;
+
+		if (src.channels <= 0)
+			return;
+
+		const std::int64_t clipStart = clip.startFrameOnTimeline;
+		const std::int64_t clipLen = (clip.sourceOutFrame - clip.sourceInFrame);
+
+		if (clipLen <= 0)
+			return;
+
+		const std::int64_t clipEnd = clipStart + clipLen;
+
+		const std::int64_t visA = std::max(viewStartFrame, clipStart);
+		const std::int64_t visB = std::min(viewEndFrame, clipEnd);
+
+		if (visB <= visA)
+			return;
+
+		const std::int64_t srcA = clip.sourceInFrame + (visA - clipStart);
+		const std::int64_t srcB = clip.sourceInFrame + (visB - clipStart);
+
+		const int xA = (int)std::round((visA - viewStartFrame) / framesPerPixel);
+		const int xB = (int)std::round((visB - viewStartFrame) / framesPerPixel);
+
+		const int px0 = std::max(0, xA);
+		const int px1 = std::min((int)p.viewport().width(), xB);
+
+		if (px1 <= px0)
+			return;
+
+		const int visibleW = std::max(1, xB - xA);
+		const double srcFramesPerPixel = (double)(srcB - srcA) / (double)visibleW;
+
+		const int midY = clipRect.center().y();
+		const int halfH = std::max(1, clipRect.height() / 2 - 2);
+
+		p.setPen(QColor(255, 255, 255, 180));
+
+		for (int px = px0; px < px1; ++px)
+		{
+			const int localX = px - xA;
+
+			const std::int64_t f0 = srcA + (std::int64_t)std::floor(localX * srcFramesPerPixel);
+			const std::int64_t f1 = srcA + (std::int64_t)std::floor((localX + 1) * srcFramesPerPixel);
+
+			const std::int64_t a = std::clamp<std::int64_t>(f0, srcA, srcB - 1);
+			const std::int64_t b = std::clamp<std::int64_t>(std::max<std::int64_t>(f1, f0 + 1), srcA, srcB);
+
+			float mn = 1.0f, mx = -1.0f;
+
+			for (std::int64_t f = a; f < b; ++f)
+			{
+				const std::int64_t idx = f * src.channels;
+				const float s = src.interleaved[(size_t)idx];
+				mn = std::min(mn, s);
+				mx = std::max(mx, s);
+			}
+
+			const int y1 = midY - (int)std::round(mx * halfH);
+			const int y2 = midY - (int)std::round(mn * halfH);
+
 			p.drawLine(px, y1, px, y2);
 		}
 	}

@@ -66,7 +66,7 @@ namespace UI
 		Audio::Clip clip;
 		clip.id = gClipId++;
 		clip.source = src;
-		clip.startFrameOnTimeline = 0;
+		clip.startFrameOnTimeline = pTimeline ? pTimeline->playheadFrame() : mProject->lengthFrames;
 		clip.sourceInFrame = 0;
 		clip.sourceOutFrame = src->frames();
 
@@ -75,7 +75,6 @@ namespace UI
 		mProject->recomputeLength();
 
 		pTimeline->setProject(mProject);
-		pTimeline->setPlayheadFrame(0);
 
 		mPlayback.setProject(mProject);
 	}

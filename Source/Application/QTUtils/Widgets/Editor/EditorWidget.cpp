@@ -17,27 +17,59 @@ namespace UI
 		root->setContentsMargins(12, 12, 12, 12);
 		root->setSpacing(10);
 
+		auto* grid = new QGridLayout();
+		grid->setContentsMargins(0, 0, 0, 0);
+		grid->setSpacing(0);
+
 		pTimeline = new TimelineView(this);
-		root->addWidget(pTimeline, 1);
+		mVScroll = new QScrollBar(Qt::Vertical, this);
+		mHScroll = new QScrollBar(Qt::Horizontal, this);
+
+		grid->addWidget(pTimeline, 0, 0);
+		grid->addWidget(mVScroll, 0, 1);
+		grid->addWidget(mHScroll, 1, 0);
+
+		auto* corner = new QWidget(this);
+		corner->setFixedSize(16, 16);
+		grid->addWidget(corner, 1, 1);
+
+		root->addLayout(grid, 1);
+		root->addWidget(pHint, 0);
 
 		pHint = new QLabel(this);
 		pHint->setText("No audio loaded. Use File -> Open or drag & drop an audio file here.");
 		pHint->setAlignment(Qt::AlignCenter);
 		root->addWidget(pHint, 0);
 
-		// playhead update
 		mPlayheadTimer.setInterval(16);
+
 		connect(&mPlayheadTimer, &QTimer::timeout, this, [this]()
 			{
-				if (!pTimeline) return;
+				if (!pTimeline)
+					return;
 				pTimeline->setPlayheadFrame(mPlayback.getCurrentFrame());
 			});
 
-		// click-to-seek
 		connect(pTimeline, &TimelineView::seekRequested, this, [this](std::int64_t f)
 			{
 				mPlayback.seekToFrame(f);
 			});
+
+		connect(mHScroll, &QScrollBar::valueChanged, this, [this](int v)
+			{
+				if (!pTimeline)
+					return;
+				pTimeline->setViewStartFrame((std::int64_t)v);
+			});
+
+		connect(mVScroll, &QScrollBar::valueChanged, this, [this](int v)
+			{
+				if (!pTimeline)
+					return;
+				pTimeline->setVerticalScrollPx(v);
+			});
+
+		connect(pTimeline, &TimelineView::viewChanged, this, [this] { syncScrollbarsFromView(); });
 	}
 
 	void EditorWidget::setDocument(Audio::AudioDocument doc, QString)
@@ -75,7 +107,6 @@ namespace UI
 		mProject->recomputeLength();
 
 		pTimeline->setProject(mProject);
-
 		mPlayback.setProject(mProject);
 	}
 
@@ -162,5 +193,21 @@ namespace UI
 	void EditorWidget::setHintText(const QString& text)
 	{
 		pHint->setText(text);
+	}
+
+	void EditorWidget::syncScrollbarsFromView()
+	{
+		if (!pTimeline)
+			return;
+
+		const auto maxH = pTimeline->maxStartFrame();
+		mHScroll->setRange(0, (int)maxH);
+		mHScroll->setPageStep(std::max(1, (int)(pTimeline->viewEndFrame() - pTimeline->viewStartFrame())));
+		mHScroll->setValue((int)pTimeline->viewStartFrame());
+
+		const int maxV = pTimeline->maxVerticalScrollPx();
+		mVScroll->setRange(0, maxV);
+		mVScroll->setPageStep(std::max(1, pTimeline->height()));
+		mVScroll->setValue(pTimeline->verticalScrollPx());
 	}
 }

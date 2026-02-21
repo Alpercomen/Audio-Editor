@@ -7,6 +7,8 @@
 
 #include <QWidget>
 #include <QTimer>
+#include <QScrollBar>
+
 #include <memory>
 
 class QLabel;
@@ -45,6 +47,10 @@ namespace UI
 		QLabel* pHint = nullptr;
 		QTimer mPlayheadTimer;
 
+		QScrollBar* mHScroll = nullptr;
+		QScrollBar* mVScroll = nullptr;
+
 		void setHintText(const QString& text);
+		void syncScrollbarsFromView();
 	};
 }

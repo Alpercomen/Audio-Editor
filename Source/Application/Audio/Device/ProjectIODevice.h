@@ -25,6 +25,15 @@ namespace Audio
             mPlayheadFrame = 0;
         }
 
+        void reserveMix(size_t samples)
+        {
+            if (mMix.capacity() < samples)
+                mMix.reserve(samples);
+
+            if (mMix.size() < samples)
+                mMix.resize(samples);
+        }
+
         void setPlayheadMirror(std::atomic<std::int64_t>* p) { mMirror = p; }
         void seekToFrame(int64_t frame) { mPlayheadFrame = std::max<int64_t>(0, frame); }
         int64_t currentFrame() const { return mPlayheadFrame; }
@@ -42,9 +51,16 @@ namespace Audio
             const int outCh = p->channels;
             const qint64 bytesPerFrame = (qint64)outCh * (qint64)sizeof(qint16);
             const int64_t framesToWrite = (int64_t)(maxBytes / bytesPerFrame);
-            if (framesToWrite <= 0) return 0;
 
-            mMix.assign((size_t)(framesToWrite * outCh), 0.0f);
+            if (framesToWrite <= 0)
+                return 0;
+
+            const size_t needed = (size_t)(framesToWrite * outCh);
+
+            if (mMix.size() < needed)
+                mMix.resize(needed);
+
+            std::fill_n(mMix.data(), needed, 0.0f);
 
             const int64_t t0 = mPlayheadFrame;
             const int64_t t1 = t0 + framesToWrite;
@@ -56,10 +72,13 @@ namespace Audio
 
                 for (const auto& clip : tr.clips)
                 {
-                    if (clip.muted || !clip.source) continue;
+                    if (clip.muted || !clip.source)
+                        continue;
+
                     const auto& src = *clip.source;
 
-                    if (src.sampleRate != p->sampleRate) continue; // MVP: require match
+                    if (src.sampleRate != p->sampleRate)
+                        continue;
 
                     const int64_t clipStart = clip.startFrameOnTimeline;
                     const int64_t clipLen = (clip.sourceOutFrame - clip.sourceInFrame);
@@ -67,7 +86,9 @@ namespace Audio
 
                     const int64_t a = std::max<int64_t>(t0, clipStart);
                     const int64_t b = std::min<int64_t>(t1, clipEnd);
-                    if (b <= a) continue;
+
+                    if (b <= a)
+                        continue;
 
                     const int64_t outOffset = a - t0;
                     const int64_t srcOffset = clip.sourceInFrame + (a - clipStart);

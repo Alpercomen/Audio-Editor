@@ -73,6 +73,7 @@ namespace UI
 					5000
 				);
 
+				pEditor->stop();
 				pEditor->setDocument(std::move(doc), file);
 			});
 	}

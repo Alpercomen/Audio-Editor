@@ -14,6 +14,7 @@ namespace UI
 	void TimelineView::setProject(std::shared_ptr<Audio::Project> p)
 	{
 		mProject = std::move(p);
+		emit viewChanged();
 		update();
 	}
 
@@ -21,6 +22,48 @@ namespace UI
 	{
 		mPlayheadFrame = std::max<std::int64_t>(0, f);
 		update();
+	}
+
+	void TimelineView::setViewStartFrame(std::int64_t f)
+	{
+		mStartFrame = std::max<std::int64_t>(0, f);
+		emit viewChanged();
+		update();
+	}
+
+	void TimelineView::setVerticalScrollPx(int px)
+	{
+		mVScrollPx = std::max(0, px);
+		emit viewChanged();
+		update();
+	}
+
+	std::int64_t TimelineView::viewEndFrame() const
+	{
+		const double fpp = getFramesPerPixel();
+		return mStartFrame + (std::int64_t)std::llround(width() * fpp);
+	}
+
+	std::int64_t TimelineView::maxStartFrame() const
+	{
+		if (!mProject)
+			return 0;
+
+		const double fpp = getFramesPerPixel();
+		const std::int64_t visible = (std::int64_t)std::llround(width() * fpp);
+
+		return std::max<std::int64_t>(0, mProject->lengthFrames - visible);
+	}
+
+	int TimelineView::maxVerticalScrollPx() const
+	{
+		if (!mProject)
+			return 0;
+
+		const int laneH = 70;
+		const int totalH = (int)mProject->tracks.size() * laneH;
+
+		return std::max(0, totalH - height());
 	}
 
 	void TimelineView::paintEvent(QPaintEvent*)
@@ -31,11 +74,17 @@ namespace UI
 		const int w = width();
 		const int h = height();
 
-		const int laneH = 70;
-		const int lanes = std::max(1, h / laneH);
+		p.save();
+		p.translate(0, -mVScrollPx);
 
+		const int laneH = 70;
 		p.setPen(QColor(55, 55, 55));
-		for (int i = 0; i <= lanes; ++i)
+
+		const int totalLanes = mProject ? (int)mProject->tracks.size() : std::max(1, h / laneH);
+		const int firstLane = std::max(0, mVScrollPx / laneH);
+		const int lastLane = std::min(totalLanes, firstLane + (h / laneH) + 3);
+
+		for (int i = firstLane; i <= lastLane; ++i)
 			p.drawLine(0, i * laneH, w, i * laneH);
 
 		if (!mProject)
@@ -45,6 +94,7 @@ namespace UI
 		const std::int64_t visibleFrames = (std::int64_t)std::max(1.0, framesPerPixel * w);
 		const std::int64_t start = mStartFrame;
 		const std::int64_t end = start + visibleFrames;
+
 
 		for (size_t ti = 0; ti < mProject->tracks.size(); ++ti)
 		{
@@ -75,7 +125,7 @@ namespace UI
 				const int x1 = (int)std::round((b - start) / framesPerPixel);
 
 				QRect r(x0, y0, std::max(2, x1 - x0), y1 - y0);
-				QColor base = niceClipColor(clip.id);
+				QColor base = generateClipColor(clip.id);
 				QLinearGradient g(r.topLeft(), r.bottomLeft());
 
 				g.setColorAt(0.0, base.lighter(115));
@@ -85,17 +135,18 @@ namespace UI
 				p.setPen(base.darker(160));
 				p.drawRect(r);
 
-				drawWaveformVisibleSlice(p, *clip.source, clip, r, start, end, framesPerPixel);
+				drawWaveform(p, *clip.source, clip, r, start, end, framesPerPixel);
 
 				p.setPen(QColor(220, 220, 220));
-				p.drawText(r.adjusted(6, 0, -6, 0), Qt::AlignVCenter | Qt::AlignLeft,
-					QString("Clip %1").arg((int)clip.id));
+				p.drawText(r.adjusted(6, 0, -6, 0), Qt::AlignVCenter | Qt::AlignLeft, QString("Clip %1").arg((int)clip.id));
 
 				bool selected = mActiveClip && (int)ti == mActiveClip->trackIndex && ci == mActiveClip->clipIndex;
 				p.setPen(selected ? QColor(255, 255, 255, 180) : QColor(120, 120, 160));
 				p.drawRect(r);
 			}
 		}
+
+		p.restore();
 
 		if (mPlayheadFrame >= start && mPlayheadFrame <= end)
 		{
@@ -112,16 +163,20 @@ namespace UI
 		if (!mProject)
 			return;
 
+		QPoint pt = e->pos();
+		pt.ry() += mVScrollPx;
+
 		if (e->button() == Qt::LeftButton)
 		{
-			mActiveClip = hitTestClip(e->pos());
+
+			mActiveClip = hitTestClip(pt);
+
 			if (mActiveClip)
 			{
-				const auto& clip = mProject->tracks[(size_t)mActiveClip->trackIndex]
-					.clips[(size_t)mActiveClip->clipIndex];
+				const auto& clip = mProject->tracks[(size_t)mActiveClip->trackIndex].clips[(size_t)mActiveClip->clipIndex];
 
 				mDragging = true;
-				mDragStartMouse = e->pos();
+				mDragStartMouse = pt;
 				mDragStartClipFrame = clip.startFrameOnTimeline;
 
 				e->accept();
@@ -129,7 +184,7 @@ namespace UI
 				return;
 			}
 
-			const auto frame = xToFrame(e->pos().x());
+			const auto frame = xToFrame(pt.x());
 			mPlayheadFrame = std::max<std::int64_t>(0, frame);
 			update();
 			emit seekRequested(mPlayheadFrame);
@@ -201,7 +256,11 @@ namespace UI
 			if (std::abs(steps) < 1e-6) steps = angleDelta.x() / 120.0;
 		}
 
-		if (std::abs(steps) < 1e-6) { e->accept(); return; }
+		if (std::abs(steps) < 1e-6)
+		{
+			e->accept();
+			return;
+		}
 
 		const double oldZoom = mZoom;
 		const double oldFpp = getFramesPerPixel();
@@ -217,25 +276,25 @@ namespace UI
 
 			update();
 			e->accept();
+			emit viewChanged();
 			return;
 		}
-		else
-		{
-			const std::int64_t anchorFrame = xToFrame(mouseX);
 
-			const double factorPerStep = 1.12;
-			const double factor = std::pow(factorPerStep, steps);
+		const std::int64_t anchorFrame = xToFrame(mouseX);
 
-			mZoom = std::clamp(mZoom * factor, 0.1, 500.0);
-			const double newFpp = getFramesPerPixel();
+		const double factorPerStep = 1.12;
+		const double factor = std::pow(factorPerStep, steps);
 
-			std::int64_t newStart = (std::int64_t)std::llround((double)anchorFrame - (double)mouseX * newFpp);
-			mStartFrame = std::max<std::int64_t>(0, newStart);
+		mZoom = std::clamp(mZoom * factor, 0.1, 500.0);
+		const double newFpp = getFramesPerPixel();
 
-			update();
-			e->accept();
-			return;
-		}
+		std::int64_t newStart = (std::int64_t)std::llround((double)anchorFrame - (double)mouseX * newFpp);
+		mStartFrame = std::max<std::int64_t>(0, newStart);
+
+		update();
+		e->accept();
+		emit viewChanged();
+		return;
 	}
 
 	std::int64_t TimelineView::xToFrame(int x) const
@@ -289,50 +348,7 @@ namespace UI
 		return std::nullopt;
 	}
 
-	static void drawWaveform(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& r, int outChannels)
-	{
-		if (r.width() <= 2 || r.height() <= 4)
-			return;
-
-		const int midY = r.center().y();
-		const int halfH = std::max(1, r.height() / 2 - 2);
-
-		const int64_t clipLen = clip.sourceOutFrame - clip.sourceInFrame;
-		if (clipLen <= 0)
-			return;
-
-		const double framesPerPixel = (double)clipLen / (double)r.width();
-
-		p.setPen(QColor(210, 210, 210));
-
-		for (int x = 0; x < r.width(); ++x)
-		{
-			const int64_t f0 = clip.sourceInFrame + (int64_t)std::floor(x * framesPerPixel);
-			const int64_t f1 = clip.sourceInFrame + (int64_t)std::floor((x + 1) * framesPerPixel);
-
-			const int64_t a = std::clamp<int64_t>(f0, clip.sourceInFrame, clip.sourceOutFrame - 1);
-			const int64_t b = std::clamp<int64_t>(std::max<int64_t>(f1, f0 + 1), clip.sourceInFrame, clip.sourceOutFrame);
-
-			float mn = 1.0f;
-			float mx = -1.0f;
-
-			for (int64_t f = a; f < b; ++f)
-			{
-				const int64_t idx = f * src.channels;
-				const float s = src.interleaved[(size_t)idx];
-				mn = std::min(mn, s);
-				mx = std::max(mx, s);
-			}
-
-			const int y1 = midY - (int)std::round(mx * halfH);
-			const int y2 = midY - (int)std::round(mn * halfH);
-
-			const int px = r.left() + x;
-			p.drawLine(px, y1, px, y2);
-		}
-	}
-
-	static void drawWaveformVisibleSlice(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, std::int64_t viewStartFrame, std::int64_t viewEndFrame, double framesPerPixel)
+	static void drawWaveform(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, std::int64_t viewStartFrame, std::int64_t viewEndFrame, double framesPerPixel)
 	{
 		if (clipRect.width() <= 2 || clipRect.height() <= 4)
 			return;

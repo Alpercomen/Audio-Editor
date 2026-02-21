@@ -13,7 +13,7 @@ namespace UI
         return (uint32_t)x;
     }
 
-    static QColor niceClipColor(uint64_t clipId)
+    static QColor generateClipColor(uint64_t clipId)
     {
         const uint32_t h = hash32(clipId);
 

@@ -43,6 +43,14 @@ namespace Audio
 
 		pSink = std::make_unique<QAudioSink>(dev, mFormat);
 
+		const int outCh = mProject->channels;
+		const int bytesPerFrame = outCh * (int)sizeof(qint16);
+
+		const int bufferBytes = pSink->bufferSize() > 0 ? pSink->bufferSize() : 65536;
+		const int64_t maxFrames = std::max<int64_t>(1, bufferBytes / bytesPerFrame);
+
+		mDevice.reserveMix((size_t)(maxFrames * outCh * 4));
+
 		connect(pSink.get(), &QAudioSink::stateChanged, this, [](QAudio::State st) {
 			spdlog::info("QAudioSink state -> {}", (int)st);
 			});

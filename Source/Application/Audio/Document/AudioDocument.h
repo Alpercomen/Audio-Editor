@@ -1,4 +1,6 @@
 #pragma once
+#include <Application/Core/Data.h>
+
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -7,21 +9,21 @@ namespace Audio
 {
 	struct AudioDocument
 	{
-		int sampleRate = 0;
-		int channels = 0;
-		std::int64_t frames = 0;
+		Int32 sampleRate = 0;
+		Int32 channels = 0;
+		Int64 frames = 0;
 		std::vector<float> interleaved;
 
-		bool isValid() const 
+		Bool8 isValid() const 
 		{
 			return sampleRate > 0 && channels > 0 && frames > 0 && !interleaved.empty();
 		}
 
-		double durationSeconds() const 
+		Float64 durationSeconds() const 
 		{
-			return (sampleRate > 0) ? (double)frames / (double)sampleRate : 0.0;
+			return (sampleRate > 0) ? (Float64)frames / (Float64)sampleRate : 0.0;
 		}
 
-		static AudioDocument LoadFromFile(const std::string& path, std::string& outError);
+		static AudioDocument LoadFromFile(const String& path, String& outError);
 	};
 }

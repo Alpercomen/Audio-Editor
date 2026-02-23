@@ -1,4 +1,10 @@
 #pragma once
+#include <Application/Core/Definitions/Definitions.h>
+#include <Application/Core/Definitions/GlmNames.h>
+#include <Application/Core/Definitions/StdNames.h>
+#include <Application/Core/Definitions/Singleton.h>
+#include <Application/Core/Definitions/BitwiseOperator.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -12,34 +18,34 @@ namespace Audio
     {
         int sampleRate = 0;
         int channels = 0;
-        std::vector<float> interleaved;
+        Vector<Float32> interleaved;
 
-        int64_t frames() const { return channels > 0 ? (int64_t)interleaved.size() / channels : 0; }
+        Int64 frames() const { return channels > 0 ? (Int64)interleaved.size() / channels : 0; }
     };
 
     struct Clip
     {
-        uint64_t id = 0;
+        Uint64 id = 0;
 
         std::shared_ptr<AudioSource> source;
 
-        int64_t startFrameOnTimeline = 0;
+        Int64 startFrameOnTimeline = 0;
 
-        int64_t sourceInFrame = 0;
-        int64_t sourceOutFrame = 0;
+        Int64 sourceInFrame = 0;
+        Int64 sourceOutFrame = 0;
 
-        float gain = 1.0f;
-        bool muted = false;
+        Float32 gain = 1.0f;
+        Bool8 muted = false;
     };
 
     struct Track
     {
-        std::string name = "Track";
-        float gain = 1.0f;
-        bool muted = false;
-        bool solo = false;
+        String name = "Track";
+        Float32 gain = 1.0f;
+        Bool8 muted = false;
+        Bool8 solo = false;
 
-        std::vector<Clip> clips;
+        Vector<Clip> clips;
     };
 
 } // namespace Audio

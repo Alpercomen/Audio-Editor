@@ -22,24 +22,24 @@ namespace UI
 	public:
 		explicit TimelineView(QWidget* parent = nullptr) : QWidget(parent) {}
 
-		void setProject(std::shared_ptr<Audio::Project> p);
-		void setPlayheadFrame(std::int64_t f);
+		void setProject(SharedPtr<Audio::Project> p);
+		void setPlayheadFrame(Int64 f);
 		double getFramesPerPixel() const { return 200.0 / std::max(0.1, mZoom); }
 
-		void setViewStartFrame(std::int64_t f);
-		std::int64_t viewStartFrame() const { return mStartFrame; }
+		void setViewStartFrame(Int64 f);
+		Int64 viewStartFrame() const { return mStartFrame; }
 
-		void setVerticalScrollPx(int px);
+		void setVerticalScrollPx(Int32 px);
 		int verticalScrollPx() const { return mVScrollPx; }
 
-		std::int64_t viewEndFrame() const;
-		std::int64_t maxStartFrame() const;
+		Int64 viewEndFrame() const;
+		Int64 maxStartFrame() const;
 		int maxVerticalScrollPx() const;
 
-		std::int64_t playheadFrame() const { return mPlayheadFrame; }
+		Int64 playheadFrame() const { return mPlayheadFrame; }
 
 	signals:
-		void seekRequested(std::int64_t frame);
+		void seekRequested(Int64 frame);
 
 	signals:
 		void viewChanged();
@@ -54,12 +54,12 @@ namespace UI
 		void wheelEvent(QWheelEvent* e) override;
 
 	private:
-		std::shared_ptr<Audio::Project> mProject;
-		std::optional<HitClip> mActiveClip;
+		SharedPtr<Audio::Project> mProject;
+		Optional<HitClip> mActiveClip;
 
-		std::int64_t mPlayheadFrame = 0;
-		std::int64_t mStartFrame = 0;
-		std::int64_t mDragStartClipFrame = 0;
+		Int64 mPlayheadFrame = 0;
+		Int64 mStartFrame = 0;
+		Int64 mDragStartClipFrame = 0;
 
 		double mZoom = 1.0;
 		int mVScrollPx = 0;
@@ -67,10 +67,10 @@ namespace UI
 
 		QPoint mDragStartMouse;
 
-		int frameToX(std::int64_t frame) const;
-		std::int64_t xToFrame(int x) const;
-		std::optional<HitClip> hitTestClip(const QPoint& pt) const;
+		int frameToX(Int64 frame) const;
+		Int64 xToFrame(int x) const;
+		Optional<HitClip> hitTestClip(const QPoint& pt) const;
 	};
 
-	void drawWaveform(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, std::int64_t viewStartFrame, std::int64_t viewEndFrame, double framesPerPixel);
+	void drawWaveform(QPainter& p, const Audio::AudioSource& src, const Audio::Clip& clip, const QRect& clipRect, Int64 viewStartFrame, Int64 viewEndFrame, Float64 framesPerPixel);
 }

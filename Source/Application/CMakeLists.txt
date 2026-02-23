@@ -26,7 +26,7 @@ target_include_directories(AudioEditor PRIVATE
     "${CMAKE_SOURCE_DIR}/Source"
 )
 
-target_link_libraries(AudioEditor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia spdlog sndfile)
+target_link_libraries(AudioEditor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia spdlog sndfile glm)
 
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(AudioEditor)

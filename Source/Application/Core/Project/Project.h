@@ -9,10 +9,10 @@ namespace Audio
         ~Project() = default;
         void recomputeLength();
 
-        int sampleRate = 48000;
-        int channels = 2;
+        Int32 sampleRate = 48000;
+        Int32 channels = 2;
 
-        std::vector<Track> tracks;
-        int64_t lengthFrames = 0;
+        Vector<Track> tracks;
+        Int64 lengthFrames = 0;
     };
 }

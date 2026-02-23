@@ -37,22 +37,22 @@ namespace Audio
 			auto pref = dev.preferredFormat();
 			spdlog::error("Format NOT supported. Requested {} Hz {} ch Int16. Preferred {} Hz {} ch fmt={}",
 				mFormat.sampleRate(), mFormat.channelCount(),
-				pref.sampleRate(), pref.channelCount(), (int)pref.sampleFormat());
+				pref.sampleRate(), pref.channelCount(), (Int32)pref.sampleFormat());
 			return;
 		}
 
 		pSink = std::make_unique<QAudioSink>(dev, mFormat);
 
-		const int outCh = mProject->channels;
-		const int bytesPerFrame = outCh * (int)sizeof(qint16);
+		const Int32 outCh = mProject->channels;
+		const Int32 bytesPerFrame = outCh * (int)sizeof(qint16);
 
-		const int bufferBytes = pSink->bufferSize() > 0 ? pSink->bufferSize() : 65536;
-		const int64_t maxFrames = std::max<int64_t>(1, bufferBytes / bytesPerFrame);
+		const Int32 bufferBytes = pSink->bufferSize() > 0 ? pSink->bufferSize() : Uint16_max;
+		const Int64 maxFrames = std::max<Int64>(1, bufferBytes / bytesPerFrame);
 
-		mDevice.reserveMix((size_t)(maxFrames * outCh * 4));
+		mDevice.reserveMix((Usize)(maxFrames * outCh * 4));
 
 		connect(pSink.get(), &QAudioSink::stateChanged, this, [](QAudio::State st) {
-			spdlog::info("QAudioSink state -> {}", (int)st);
+			spdlog::info("QAudioSink state -> {}", (Int32)st);
 			});
 
 		mDevice.setProject(mProject);
@@ -121,28 +121,28 @@ namespace Audio
 		pSink->start(&mDevice);
 	}
 
-	bool AudioPlayback::isPlaying() const
+	Bool8 AudioPlayback::isPlaying() const
 	{
 		return pSink && pSink->state() == QAudio::ActiveState;
 	}
 
-	bool AudioPlayback::isPaused() const
+	Bool8 AudioPlayback::isPaused() const
 	{
 		return pSink && pSink->state() == QAudio::SuspendedState;
 	}
 
-	void AudioPlayback::seekToFrame(std::int64_t frame)
+	void AudioPlayback::seekToFrame(Int64 frame)
 	{
 		if (!pSink || !mProject)
 			return;
 
-		frame = std::max<std::int64_t>(0, frame);
+		frame = std::max<Int64>(0, frame);
 
 		mDevice.seekToFrame(frame);
 		mUiPlayheadFrame.store(frame);
 	}
 
-	std::int64_t AudioPlayback::getCurrentFrame() const
+	Int64 AudioPlayback::getCurrentFrame() const
 	{
 		return mUiPlayheadFrame.load();
 	}
@@ -161,7 +161,7 @@ namespace Audio
 		pSink->start(&mDevice);
 	}
 
-	bool AudioPlayback::hasResumePosition() const
+	Bool8 AudioPlayback::hasResumePosition() const
 	{
 		return mHasResumePos;
 	}

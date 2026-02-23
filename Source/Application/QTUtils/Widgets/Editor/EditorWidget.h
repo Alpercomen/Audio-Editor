@@ -42,7 +42,7 @@ namespace UI
 	private:
 		UI::TimelineView* pTimeline = nullptr;
 		Audio::AudioPlayback mPlayback;
-		std::shared_ptr<Audio::Project> mProject;
+		SharedPtr<Audio::Project> mProject;
 
 		QLabel* pHint = nullptr;
 		QTimer mPlayheadTimer;

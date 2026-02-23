@@ -55,7 +55,7 @@ namespace UI
 				if (file.isEmpty())
 					return;
 
-				std::string err;
+				String err;
 				Audio::AudioDocument doc = Audio::AudioDocument::LoadFromFile(file.toStdString(), err);
 
 				if (!doc.isValid())
@@ -95,7 +95,7 @@ namespace UI
 
 		toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-		connect(playFromStartAct, &QAction::triggered, this, [this, playPauseAct, pauseIcon](bool)
+		connect(playFromStartAct, &QAction::triggered, this, [this, playPauseAct, pauseIcon](Bool8)
 			{
 				if (!pEditor)
 					return;
@@ -106,7 +106,7 @@ namespace UI
 				playPauseAct->setChecked(true);
 			});
 
-		connect(playPauseAct, &QAction::triggered, this, [this, playPauseAct, playIcon, pauseIcon](bool)
+		connect(playPauseAct, &QAction::triggered, this, [this, playPauseAct, playIcon, pauseIcon](Bool8)
 			{
 				if (!pEditor)
 					return;

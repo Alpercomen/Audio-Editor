@@ -50,7 +50,7 @@ namespace UI
 				pTimeline->setPlayheadFrame(mPlayback.getCurrentFrame());
 			});
 
-		connect(pTimeline, &TimelineView::seekRequested, this, [this](std::int64_t f)
+		connect(pTimeline, &TimelineView::seekRequested, this, [this](Int64 f)
 			{
 				mPlayback.seekToFrame(f);
 			});
@@ -59,7 +59,7 @@ namespace UI
 			{
 				if (!pTimeline)
 					return;
-				pTimeline->setViewStartFrame((std::int64_t)v);
+				pTimeline->setViewStartFrame((Int64)v);
 			});
 
 		connect(mVScroll, &QScrollBar::valueChanged, this, [this](int v)
@@ -79,13 +79,13 @@ namespace UI
 
 		if (!mProject)
 		{
-			mProject = std::make_shared<Audio::Project>();
+			mProject = MakeShared<Audio::Project>();
 			mProject->sampleRate = doc.sampleRate;
 			mProject->channels = std::max(1, doc.channels);
 			mProject->tracks.clear();
 		}
 
-		auto src = std::make_shared<Audio::AudioSource>();
+		auto src = MakeShared<Audio::AudioSource>();
 		src->sampleRate = doc.sampleRate;
 		src->channels = doc.channels;
 		src->interleaved = doc.interleaved;
@@ -93,7 +93,7 @@ namespace UI
 		mProject->tracks.push_back(Audio::Track{ "Track " + std::to_string(mProject->tracks.size() + 1) });
 		auto& track = mProject->tracks[mProject->tracks.size() - 1];
 
-		static uint64_t gClipId = 1;
+		static Uint64 gClipId = 1;
 
 		Audio::Clip clip;
 		clip.id = gClipId++;
@@ -168,14 +168,17 @@ namespace UI
 	void EditorWidget::dropEvent(QDropEvent* e)
 	{
 		const auto urls = e->mimeData()->urls();
-		if (urls.isEmpty()) return;
+		if (urls.isEmpty())
+			return;
 
 		const QString path = urls.first().toLocalFile();
-		if (path.isEmpty()) return;
+		if (path.isEmpty())
+			return;
 
-		std::string err;
+		String err;
 		auto doc = Audio::AudioDocument::LoadFromFile(path.toStdString(), err);
-		if (!doc.isValid()) {
+		if (!doc.isValid())
+		{
 			QMessageBox::critical(this, "Failed to load", QString::fromStdString(err));
 			return;
 		}

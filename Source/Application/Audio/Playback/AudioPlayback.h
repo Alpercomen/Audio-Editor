@@ -28,22 +28,22 @@ namespace Audio
 		bool isPlaying() const;
 		bool isPaused() const;
 
-		void seekToFrame(std::int64_t frame);
-		std::int64_t getCurrentFrame() const;
+		void seekToFrame(Int64 frame);
+		Int64 getCurrentFrame() const;
 
 		void playFromStart();
 		bool hasResumePosition() const;
 
 	private:
-		bool mHasResumePos = false;
+		Bool8 mHasResumePos = false;
 
-		std::shared_ptr<Audio::Project> mProject;
-		std::unique_ptr<QAudioSink> pSink;
-		std::atomic<std::int64_t> mUiPlayheadFrame = 0;
+		SharedPtr<Audio::Project> mProject;
+		UniquePtr<QAudioSink> pSink;
+		Atomic<Int64> mUiPlayheadFrame = 0;
 
 		ProjectIODevice mDevice;
 		QAudioFormat mFormat;
 
-		std::int64_t mPausedFrame = 0;
+		Int64 mPausedFrame = 0;
 	};
 }

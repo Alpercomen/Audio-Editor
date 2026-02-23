@@ -1,15 +1,18 @@
+#pragma once
+#include <Application/Core/Data.h>
+
 #include "AudioDocument.h"
 #include <sndfile.h>
 
 namespace Audio
 {
-	static std::string sfErrorString(SNDFILE* f)
+	static String sfErrorString(SNDFILE* f)
 	{
 		const char* s = sf_strerror(f);
-		return s ? std::string(s) : std::string("Unknown libsndfile error.");
+		return s ? String(s) : String("Unknown libsndfile error.");
 	}
 
-	AudioDocument AudioDocument::LoadFromFile(const std::string& path, std::string& outError)
+	AudioDocument AudioDocument::LoadFromFile(const String& path, String& outError)
 	{
 		outError.clear();
 
@@ -33,7 +36,7 @@ namespace Audio
 		doc.channels = info.channels;
 		doc.frames = info.frames;
 
-		const std::int64_t totalSamples = doc.frames * doc.channels;
+		const Int64 totalSamples = doc.frames * doc.channels;
 		if (totalSamples <= 0)
 		{
 			outError = "Invalid sample count.";
@@ -41,17 +44,17 @@ namespace Audio
 			return {};
 		}
 
-		doc.interleaved.resize((size_t)totalSamples);
+		doc.interleaved.resize((Usize)totalSamples);
 
-		std::int64_t framesRead = 0;
+		Int64 framesRead = 0;
 		while (framesRead < doc.frames)
 		{
 			// TODO Fix the magic number
-			const std::int64_t remaining = doc.frames - framesRead;
-			const std::int64_t chunk = (remaining > 65536) ? 65536 : remaining;
+			const Int64 remaining = doc.frames - framesRead;
+			const Int64 chunk = (remaining > 65536) ? 65536 : remaining;
 
-			float* dst = doc.interleaved.data() + (size_t)(framesRead * doc.channels);
-			const std::int64_t got = sf_readf_float(file, dst, chunk);
+			float* dst = doc.interleaved.data() + (Usize)(framesRead * doc.channels);
+			const Int64 got = sf_readf_float(file, dst, chunk);
 
 			if (got <= 0)
 				break;
@@ -64,7 +67,7 @@ namespace Audio
 		if (framesRead != doc.frames)
 		{
 			doc.frames += framesRead;
-			doc.interleaved.resize((size_t)(doc.frames * doc.channels));
+			doc.interleaved.resize((Usize)(doc.frames * doc.channels));
 			outError = "Warning: file read was shorter than expected.";
 		}
 

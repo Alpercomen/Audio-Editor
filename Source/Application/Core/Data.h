@@ -27,7 +27,7 @@ namespace Audio
     {
         Uint64 id = 0;
 
-        std::shared_ptr<AudioSource> source;
+        SharedPtr<AudioSource> source;
 
         Int64 startFrameOnTimeline = 0;
 

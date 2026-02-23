@@ -141,7 +141,7 @@ namespace UI
 				p.setPen(QColor(220, 220, 220));
 				p.drawText(r.adjusted(6, 0, -6, 0), Qt::AlignVCenter | Qt::AlignLeft, QString("Clip %1").arg((int)clip.id));
 
-				bool selected = mActiveClip && (int)ti == mActiveClip->trackIndex && ci == mActiveClip->clipIndex;
+				bool selected = mActiveClip && (Int32)ti == mActiveClip->trackIndex && ci == mActiveClip->clipIndex;
 				p.setPen(selected ? QColor(255, 255, 255, 180) : QColor(120, 120, 160));
 				p.drawRect(r);
 			}
@@ -151,7 +151,7 @@ namespace UI
 
 		if (mPlayheadFrame >= start && mPlayheadFrame <= end)
 		{
-			const int x = (int)std::round((mPlayheadFrame - start) / framesPerPixel);
+			const Int32 x = (int)std::round((mPlayheadFrame - start) / framesPerPixel);
 			QPen pen(QColor(255, 60, 60));
 			pen.setWidth(2);
 			p.setPen(pen);
@@ -180,6 +180,11 @@ namespace UI
 				mDragStartMouse = pt;
 				mDragStartClipFrame = clip.startFrameOnTimeline;
 
+				const Int64 mouseFrame = xToFrame(pt.x());
+				mDragGrabOffsetFrames = mouseFrame - clip.startFrameOnTimeline;
+
+				grabMouse();
+
 				e->accept();
 				update();
 				return;
@@ -204,14 +209,33 @@ namespace UI
 			return;
 		}
 
-		const Int32 dx = e->pos().x() - mDragStartMouse.x();
+		QPoint pt = e->pos();
+		pt.ry() += mVScrollPx;
 
-		const Int64 targetFrame = xToFrame(mDragStartMouse.x() + dx);
-		const Int64 delta = targetFrame - xToFrame(mDragStartMouse.x());
+		const Int32 laneH = 70;
+		Int32 targetTrack = pt.y() / laneH;
 
-		auto& clip = mProject->tracks[(Usize)mActiveClip->trackIndex].clips[(Usize)mActiveClip->clipIndex];
+		targetTrack = std::clamp(targetTrack, 0, (Int32)mProject->tracks.size() - 1);
 
-		clip.startFrameOnTimeline = std::max<Int64>(0, mDragStartClipFrame + delta);
+		const Int64 mouseFrame = xToFrame(pt.x());
+		const Int64 newStartFrame = std::max<Int64>(0, mouseFrame - mDragGrabOffsetFrames);
+
+		Int32 curTrack = mActiveClip->trackIndex;
+		Int32 curClip = mActiveClip->clipIndex;
+
+		if (targetTrack != curTrack)
+		{
+			const Int32 newIndex = moveClipToTrack(curTrack, curClip, targetTrack);
+			if (newIndex >= 0)
+			{
+				mActiveClip = HitClip{ targetTrack , newIndex };
+				curTrack = targetTrack;
+				curClip = newIndex;
+			}
+		}
+
+		auto& clip = mProject->tracks[(size_t)curTrack].clips[(size_t)curClip];
+		clip.startFrameOnTimeline = newStartFrame;
 
 		mProject->recomputeLength();
 		update();
@@ -224,6 +248,7 @@ namespace UI
 		if (e->button() == Qt::LeftButton && mDragging)
 		{
 			mDragging = false;
+			releaseMouse();
 			e->accept();
 			return;
 		}
@@ -325,12 +350,10 @@ namespace UI
 		if (fromClipIndex < 0 || fromClipIndex >= (Int32)src.size())
 			return -1;
 
-		// Move the clip object across tracks
 		Audio::Clip clip = std::move(src[(size_t)fromClipIndex]);
 		src.erase(src.begin() + fromClipIndex);
-
-		// For now: just append (overlaps allowed).
 		dst.push_back(std::move(clip));
+
 		return (Int32)dst.size() - 1;
 	}
 

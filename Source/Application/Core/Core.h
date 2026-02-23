@@ -16,8 +16,8 @@ namespace Audio
 
     struct AudioSource
     {
-        int sampleRate = 0;
-        int channels = 0;
+        Int32 sampleRate = 0;
+        Int32 channels = 0;
         Vector<Float32> interleaved;
 
         Int64 frames() const { return channels > 0 ? (Int64)interleaved.size() / channels : 0; }
@@ -49,3 +49,12 @@ namespace Audio
     };
 
 } // namespace Audio
+
+namespace UI
+{
+    struct HitClip
+    {
+        Int32 trackIndex = -1;
+        Int32 clipIndex = -1;
+    };
+} // namespace UI

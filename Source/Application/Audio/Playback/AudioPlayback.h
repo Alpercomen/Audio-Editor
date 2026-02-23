@@ -1,7 +1,7 @@
 #pragma once
 #include <Application/Audio/Device/ProjectIODevice.h>
 #include <Application/Core/Project/Project.h>
-#include <Application/Core/Data.h>
+#include <Application/Core/Core.h>
 
 #include <QObject>
 #include <QAudioSink>

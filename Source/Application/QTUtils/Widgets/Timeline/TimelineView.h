@@ -1,6 +1,6 @@
 #pragma once
 #include <Application/Core/Project/Project.h>
-#include <Application/Core/Data.h>
+#include <Application/Core/Core.h>
 
 #include <memory>
 #include <optional>
@@ -10,12 +10,6 @@
 
 namespace UI
 {
-	struct HitClip
-	{
-		int trackIndex = -1;
-		int clipIndex = -1;
-	};
-
 	class TimelineView : public QWidget
 	{
 		Q_OBJECT
@@ -24,17 +18,17 @@ namespace UI
 
 		void setProject(SharedPtr<Audio::Project> p);
 		void setPlayheadFrame(Int64 f);
-		double getFramesPerPixel() const { return 200.0 / std::max(0.1, mZoom); }
+		Float64 getFramesPerPixel() const { return 200.0 / std::max(0.1, mZoom); }
 
 		void setViewStartFrame(Int64 f);
 		Int64 viewStartFrame() const { return mStartFrame; }
 
 		void setVerticalScrollPx(Int32 px);
-		int verticalScrollPx() const { return mVScrollPx; }
+		Int32 verticalScrollPx() const { return mVScrollPx; }
 
 		Int64 viewEndFrame() const;
 		Int64 maxStartFrame() const;
-		int maxVerticalScrollPx() const;
+		Int32 maxVerticalScrollPx() const;
 
 		Int64 playheadFrame() const { return mPlayheadFrame; }
 
@@ -61,13 +55,13 @@ namespace UI
 		Int64 mStartFrame = 0;
 		Int64 mDragStartClipFrame = 0;
 
-		double mZoom = 1.0;
-		int mVScrollPx = 0;
-		bool mDragging = false;
+		Float64 mZoom = 1.0;
+		Int32 mVScrollPx = 0;
+		Bool8 mDragging = false;
 
 		QPoint mDragStartMouse;
 
-		int frameToX(Int64 frame) const;
+		Int32 frameToX(Int64 frame) const;
 		Int64 xToFrame(int x) const;
 		Optional<HitClip> hitTestClip(const QPoint& pt) const;
 	};

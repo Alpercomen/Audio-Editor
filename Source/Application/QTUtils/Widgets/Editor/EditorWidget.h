@@ -2,6 +2,7 @@
 #include <Application/Audio/Document/AudioDocument.h>
 #include <Application/Audio/Playback/AudioPlayback.h>
 #include <Application/QTUtils/Widgets/Timeline/TimelineView.h>
+#include <Application/QTUtils/Widgets/TrackHeader/TrackHeaderView.h>
 #include <Application/Core/Project/Project.h>
 #include <Application/Core/Core.h>
 
@@ -41,6 +42,7 @@ namespace UI
 
 	private:
 		UI::TimelineView* pTimeline = nullptr;
+		UI::TrackHeaderView* pTrackHeader = nullptr;
 		Audio::AudioPlayback mPlayback;
 		SharedPtr<Audio::Project> mProject;
 

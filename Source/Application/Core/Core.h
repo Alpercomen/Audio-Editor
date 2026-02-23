@@ -7,7 +7,6 @@
 
 namespace Audio
 {
-
     struct AudioSource
     {
         Int32 sampleRate = 0;
@@ -35,11 +34,16 @@ namespace Audio
     struct Track
     {
         String name = "Track";
+
         Float32 gain = 1.0f;
         Bool8 muted = false;
         Bool8 solo = false;
+        Bool8 forceMono = false;
+        Bool8 useOutGains = false;
+        Float32 pan = 0.0f;
 
         Vector<Clip> clips;
+        Vector<Float32> outGains;
     };
 
 } // namespace Audio

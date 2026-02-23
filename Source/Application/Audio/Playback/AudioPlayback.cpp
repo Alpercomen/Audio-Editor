@@ -41,7 +41,7 @@ namespace Audio
 			return;
 		}
 
-		pSink = std::make_unique<QAudioSink>(dev, mFormat);
+		pSink = MakeUnique<QAudioSink>(dev, mFormat);
 
 		const Int32 outCh = mProject->channels;
 		const Int32 bytesPerFrame = outCh * (int)sizeof(qint16);

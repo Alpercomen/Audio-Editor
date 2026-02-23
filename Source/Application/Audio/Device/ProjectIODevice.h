@@ -68,7 +68,15 @@ namespace Audio
             // Mix tracks/clips
             for (const auto& tr : p->tracks)
             {
-                if (tr.muted) continue;
+                if (tr.muted)
+                    continue;
+
+                const Bool8 trackMono = tr.forceMono;
+
+                Float32 pan = std::clamp(tr.pan, -1.0f, 1.0f);
+                Float32 angle = (tr.pan + 1.0f) * 0.25f * Float32(M_PI);
+                Float32 gL = std::cos(angle);
+                Float32 gR = std::sin(angle);
 
                 for (const auto& clip : tr.clips)
                 {
@@ -94,25 +102,57 @@ namespace Audio
                     const Int64 srcOffset = clip.sourceInFrame + (a - clipStart);
                     const Int64 nFrames = b - a;
 
-                    const float g = clip.gain * tr.gain;
+                    const Float32 g = clip.gain * tr.gain;
 
                     for (Int64 f = 0; f < nFrames; ++f)
                     {
                         const Int64 outFrame = outOffset + f;
                         const Int64 srcFrame = srcOffset + f;
 
-                        for (int ch = 0; ch < outCh; ++ch)
+                        const Float32* srcBase = src.interleaved.data() + (Usize)(srcFrame * src.channels);
+                        Float32* outBase = mMix.data() + (Usize)(outFrame * outCh);
+                        Float32 mono = 0.0f;
+
+                        if (trackMono)
                         {
-                            float s = 0.0f;
-                            if (src.channels == 1) {
-                                s = src.interleaved[(Usize)srcFrame];
+                            for (Int32 sc = 0; sc < src.channels; ++sc)
+                                mono += srcBase[sc];
+
+                            mono *= (src.channels > 0) ? (1.0f / (Float32)src.channels) : 0.0f;
+                        }
+
+                        for (Int32 oc = 0; oc < outCh; ++oc)
+                        {
+                            Float32 s = 0.0f;
+
+                            if (trackMono)
+                            {
+                                s = mono;
                             }
-                            else {
-                                const int srcCh = std::min(ch, src.channels - 1);
-                                s = src.interleaved[(Usize)(srcFrame * src.channels + srcCh)];
+                            else
+                            {
+                                if (src.channels == 1)
+                                {
+                                    s = srcBase[0];
+                                }
+                                else
+                                {
+                                    const Int32 sc = (oc < src.channels) ? oc : (src.channels - 1);
+                                    s = srcBase[sc];
+                                }
                             }
 
-                            mMix[(Usize)(outFrame * outCh + ch)] += s * g;
+                            Float32 chanGain = 1.0f;
+                            if (outCh >= 2)
+                            {
+                                if (oc == 0)
+                                    chanGain = gL;
+
+                                else if (oc == 1)
+                                    chanGain = gR;
+                            }
+
+                            outBase[oc] += s * (g * chanGain);
                         }
                     }
                 }
@@ -123,7 +163,7 @@ namespace Audio
 
             for (Int64 i = 0; i < samples; ++i)
             {
-                float x = std::clamp(mMix[(Usize)i], -1.0f, 1.0f);
+                Float32 x = std::clamp(mMix[(Usize)i], -1.0f, 1.0f);
                 dst[i] = (qint16)std::lrintf(x * 32767.0f);
             }
 

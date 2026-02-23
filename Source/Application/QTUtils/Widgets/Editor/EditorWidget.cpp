@@ -25,13 +25,20 @@ namespace UI
 		mVScroll = new QScrollBar(Qt::Vertical, this);
 		mHScroll = new QScrollBar(Qt::Horizontal, this);
 
-		grid->addWidget(pTimeline, 0, 0);
-		grid->addWidget(mVScroll, 0, 1);
-		grid->addWidget(mHScroll, 1, 0);
+		pTrackHeader = new TrackHeaderView(this);
+
+		grid->addWidget(pTrackHeader, 0, 0);
+		grid->addWidget(pTimeline, 0, 1);
+		grid->addWidget(mVScroll, 0, 2);
+		grid->addWidget(mHScroll, 1, 1);
+
+		grid->setColumnStretch(0, 0);
+		grid->setColumnStretch(1, 1);
+		grid->setColumnStretch(2, 0);
 
 		auto* corner = new QWidget(this);
 		corner->setFixedSize(16, 16);
-		grid->addWidget(corner, 1, 1);
+		grid->addWidget(corner, 1, 2);
 
 		root->addLayout(grid, 1);
 		root->addWidget(pHint, 0);
@@ -45,9 +52,8 @@ namespace UI
 
 		connect(&mPlayheadTimer, &QTimer::timeout, this, [this]()
 			{
-				if (!pTimeline)
-					return;
-				pTimeline->setPlayheadFrame(mPlayback.getCurrentFrame());
+				if (pTimeline)
+					pTimeline->setPlayheadFrame(mPlayback.getCurrentFrame());
 			});
 
 		connect(pTimeline, &TimelineView::seekRequested, this, [this](Int64 f)
@@ -57,19 +63,23 @@ namespace UI
 
 		connect(mHScroll, &QScrollBar::valueChanged, this, [this](int v)
 			{
-				if (!pTimeline)
-					return;
-				pTimeline->setViewStartFrame((Int64)v);
+				if (pTimeline)
+					pTimeline->setViewStartFrame((Int64)v);
 			});
 
 		connect(mVScroll, &QScrollBar::valueChanged, this, [this](int v)
 			{
-				if (!pTimeline)
-					return;
-				pTimeline->setVerticalScrollPx(v);
+				if (pTimeline)
+					pTimeline->setVerticalScrollPx(v);
+
+				if (pTrackHeader) 
+					pTrackHeader->setVerticalScrollPx(v);
 			});
 
-		connect(pTimeline, &TimelineView::viewChanged, this, [this] { syncScrollbarsFromView(); });
+		connect(pTimeline, &TimelineView::viewChanged, this, [this]
+			{
+				syncScrollbarsFromView();
+			});
 	}
 
 	void EditorWidget::setDocument(Audio::AudioDocument doc, QString)
@@ -103,10 +113,10 @@ namespace UI
 		clip.sourceOutFrame = src->frames();
 
 		track.clips.push_back(std::move(clip));
-		mProject->tracks[0].clips.push_back(std::move(clip));
 		mProject->recomputeLength();
 
 		pTimeline->setProject(mProject);
+		pTrackHeader->setProject(mProject);
 		mPlayback.setProject(mProject);
 	}
 

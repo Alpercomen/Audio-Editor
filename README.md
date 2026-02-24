@@ -25,4 +25,21 @@ A lightweight **DAW-inspired audio editor** built in **C++ + Qt** featuring a **
 ---
 
 ## In Editor View
-<img width="1165" height="592" alt="Screenshot 2026-02-24 140443" src="https://github.com/user-attachments/assets/2e5f95b6-2a87-4ec7-8b93-c1df1550fc23" />
+<img width="1194" height="727" alt="image" src="https://github.com/user-attachments/assets/13c0ef27-26e4-4f55-8942-0e7aa0928ba0" />
+
+---
+
+## Getting Started
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/Alpercomen/Nyx.git
+   cd Nyx
+
+2. **Generate project files using CMake**
+   ```bash
+   cmake -S . -B Build
+   cmake --build Build
+
+3. **Run the Editor**
+   - Navigate to the build directory and launch the Nyx Editor executable.

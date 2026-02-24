@@ -13,21 +13,21 @@ file(GLOB_RECURSE APP_SOURCES
 )
 
 if (QT_VERSION_MAJOR EQUAL 6)
-    qt_add_executable(AudioEditor
+    qt_add_executable(Sona
         MANUAL_FINALIZATION
         ${APP_SOURCES}
     )
 else()
-    add_executable(AudioEditor ${APP_SOURCES})
+    add_executable(Sona ${APP_SOURCES})
 endif()
 
 # Add the root of your project headers so <Application/Core/Core.h> works
-target_include_directories(AudioEditor PRIVATE
+target_include_directories(Sona PRIVATE
     "${CMAKE_SOURCE_DIR}/Source"
 )
 
-target_link_libraries(AudioEditor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia spdlog sndfile glm)
+target_link_libraries(Sona PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia spdlog sndfile glm)
 
 if (QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(AudioEditor)
+    qt_finalize_executable(Sona)
 endif()

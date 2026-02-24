@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(AudioEditor LANGUAGES CXX)
+project(Sona LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -15,4 +15,4 @@ include(HandleQt)
 add_subdirectory(External)
 add_subdirectory(Source/Application)
 
-target_compile_definitions(AudioEditor PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+target_compile_definitions(Sona PRIVATE PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

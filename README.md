@@ -1,4 +1,4 @@
-# Audio Editor (C++ / Qt) — DAW-Style Multi-Track Timeline
+# Sona (C++ / Qt) — DAW-Style Multi-Track Timeline
 
 A lightweight **DAW-inspired audio editor** built in **C++ + Qt** featuring a **multi-track timeline**, **waveform clip rendering**, and a **channel-aware audio pipeline** designed to scale beyond stereo.
 ---

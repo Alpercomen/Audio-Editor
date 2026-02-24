@@ -25,7 +25,7 @@ namespace UI
 		buildToolbar();
 
 		statusBar()->showMessage("Ready");
-		setWindowTitle("Audio Editor");
+		setWindowTitle("Sona");
 	}
 
 	void MainWindow::buildMenus()

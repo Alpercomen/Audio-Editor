@@ -33,8 +33,8 @@ A lightweight **DAW-inspired audio editor** built in **C++ + Qt** featuring a **
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/Alpercomen/Nyx.git
-   cd Nyx
+   git clone https://github.com/Alpercomen/Sona.git
+   cd Sona
 
 2. **Generate project files using CMake**
    ```bash
@@ -42,4 +42,4 @@ A lightweight **DAW-inspired audio editor** built in **C++ + Qt** featuring a **
    cmake --build Build
 
 3. **Run the Editor**
-   - Navigate to the build directory and launch the Nyx Editor executable.
+   - Navigate to the build directory and launch the Sona executable.

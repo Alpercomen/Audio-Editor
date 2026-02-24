@@ -1,10 +1,16 @@
 #pragma once
 #include <Application/Audio/Document/AudioDocument.h>
-#include <Application/QTUtils/Audio/Playback/AudioPlayback.h>
-#include <Application/QTUtils/Widgets/Waveform/WaveformView.h>
+#include <Application/Audio/Playback/AudioPlayback.h>
+#include <Application/QTUtils/Widgets/Timeline/TimelineView.h>
+#include <Application/QTUtils/Widgets/TrackHeader/TrackHeaderView.h>
+#include <Application/Core/Project/Project.h>
+#include <Application/Core/Core.h>
 
 #include <QWidget>
 #include <QTimer>
+#include <QScrollBar>
+
+#include <memory>
 
 class QLabel;
 
@@ -18,28 +24,35 @@ namespace UI
 
 		void play();
 		void stop();
-		void setDocument(Audio::AudioDocument doc, QString sourcePath = {})
-		{
-			mPlayback.setDocument(doc);
-			pWaveView->setDocument(doc, sourcePath);
-			pWaveView->setPlayheadFrame(0);
-		}
+		void pause();
+		void resume();
+		void playFromStart();
 
-		const Audio::AudioDocument& getDocument() const 
-		{
-			return pWaveView->getDocument();
-		}
+		bool isPlaying() const { return mPlayback.isPlaying(); }
+		bool isPaused()  const { return mPlayback.isPaused(); }
+		bool hasAudio() const { return mProject && !mProject->tracks.empty() && !mProject->tracks[0].clips.empty(); }
+
+		void togglePlayPause();
+
+		void setDocument(Audio::AudioDocument doc, QString sourcePath = {});
 
 	protected:
 		void dragEnterEvent(QDragEnterEvent* e) override;
 		void dropEvent(QDropEvent* e) override;
 
 	private:
-		UI::WaveformView* pWaveView = nullptr;
+		UI::TimelineView* pTimeline = nullptr;
+		UI::TrackHeaderView* pTrackHeader = nullptr;
 		Audio::AudioPlayback mPlayback;
+		SharedPtr<Audio::Project> mProject;
+
 		QLabel* pHint = nullptr;
 		QTimer mPlayheadTimer;
 
+		QScrollBar* mHScroll = nullptr;
+		QScrollBar* mVScroll = nullptr;
+
 		void setHintText(const QString& text);
+		void syncScrollbarsFromView();
 	};
 }

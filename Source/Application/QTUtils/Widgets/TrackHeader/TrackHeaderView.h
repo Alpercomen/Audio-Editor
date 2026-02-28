@@ -47,9 +47,9 @@ namespace UI
 
         static constexpr Int32 laneH = 70;
 
-        QRect muteRectForRow(Int32 y0) const { return QRect(12, y0 + 22, 44, 24); }
-        QRect monoRectForRow(Int32 y0) const { return QRect(62, y0 + 22, 54, 24); }
-        QRect panRectForRow(Int32 y0)  const { return QRect(12, y0 + 52, 170, 16); }
+        QRect getMuteRect(Int32 y0) const { return QRect(12, y0 + 22, 44, 24); }
+        QRect getMonoRect(Int32 y0) const { return QRect(62, y0 + 22, 54, 24); }
+        QRect getPanRect(Int32 y0)  const { return QRect(12, y0 + 52, 170, 16); }
 
         Float32 xToPan(Int32 x, const QRect& r) const;
     };

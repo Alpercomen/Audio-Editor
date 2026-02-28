@@ -47,21 +47,21 @@ namespace UI
             p.drawText(QRect(12, y0 + 6, w - 24, 14), Qt::AlignLeft | Qt::AlignVCenter,
                 QString::fromStdString(tr.name));
 
-            QRect rm = muteRectForRow(y0);
+            QRect rm = getMuteRect(y0);
             p.fillRect(rm, tr.muted ? QColor(220, 80, 80) : QColor(60, 60, 60));
             p.setPen(QColor(15, 15, 15));
             p.drawRect(rm);
             p.setPen(QColor(240, 240, 240));
             p.drawText(rm, Qt::AlignCenter, "Mute");
 
-            QRect rmo = monoRectForRow(y0);
+            QRect rmo = getMonoRect(y0);
             p.fillRect(rmo, tr.forceMono ? QColor(90, 180, 90) : QColor(60, 60, 60));
             p.setPen(QColor(15, 15, 15));
             p.drawRect(rmo);
             p.setPen(QColor(240, 240, 240));
             p.drawText(rmo, Qt::AlignCenter, "Mono");
 
-            QRect rp = panRectForRow(y0);
+            QRect rp = getPanRect(y0);
             p.fillRect(rp, QColor(45, 45, 45));
             p.setPen(QColor(15, 15, 15));
             p.drawRect(rp);
@@ -94,9 +94,9 @@ namespace UI
         auto& tr = mProject->tracks[(size_t)ti];
         const Int32 y0 = ti * laneH;
 
-        const QRect rm = muteRectForRow(y0);
-        const QRect rmo = monoRectForRow(y0);
-        const QRect rp = panRectForRow(y0);
+        const QRect rm = getMuteRect(y0);
+        const QRect rmo = getMonoRect(y0);
+        const QRect rp = getPanRect(y0);
 
         if (rm.contains(pt))
         {
@@ -140,7 +140,7 @@ namespace UI
 
         auto& tr = mProject->tracks[(size_t)mPanTrack];
         const Int32 y0 = mPanTrack * laneH;
-        const QRect rp = panRectForRow(y0);
+        const QRect rp = getPanRect(y0);
 
         tr.pan = xToPan(pt.x(), rp);
         emit trackParamsChanged();
